@@ -4,7 +4,7 @@ import {
     createQueue
 } from "../controllers/queueController.js";
 
-import { createClient } from "../controllers/clientController.js";
+import { createClient, checkPositionInQueue } from "../controllers/clientController.js";
 const router = express.Router();
 
 
@@ -13,5 +13,6 @@ router.post('/queues', createQueue);
 
 
 router.post('/clients', createClient);
+router.get('/clients/:clientId/position', checkPositionInQueue);
 
 export default router;
