@@ -8,7 +8,7 @@ import { createClient, checkPositionInQueue } from "../controllers/clientControl
 const router = express.Router();
 
 
-router.get('/queues', getQueue);
+router.get('/queue/:queueId', getQueue);
 router.post('/queues', createQueue);
 
 

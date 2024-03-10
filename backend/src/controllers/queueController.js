@@ -1,13 +1,21 @@
 import Queue from "../models/queueModel.js";
 
-export const getQueue = async(req, res) =>{
+export const getQueue = async (req, res) => {
+    console.log('getQueue');
     try {
-        const response = await Queue.findAll();
-        res.status(200).json(response);
+      const queueId = req.params.queueId; // Obtém o ID da fila dos parâmetros da rota
+      const queue = await Queue.findByPk(queueId); // Procura a fila pelo ID
+      
+      if (queue) {
+        res.status(200).json({ queue, isActive: true }); // Se a fila existir, ela está ativa
+      } else {
+        res.status(404).json({ message: 'Fila não encontrada.' }); // Se a fila não existir, retorna um erro 404
+      }
     } catch (error) {
-        console.log(error.message);
+      console.log(error.message);
+      res.status(500).json({ message: 'Erro ao obter a fila.' });
     }
-}
+  };
 
 export const createQueue = async(req, res) =>{
     try {
