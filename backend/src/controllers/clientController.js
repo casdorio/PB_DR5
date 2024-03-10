@@ -1,6 +1,7 @@
 import Queue from "../models/queueModel.js";
 import Client from "../models/clientModel.js";
 
+//ajustar alguns erros
 export const createClient = async (req, res) => {
     try {
         const queueId = req.body.queueId; 
