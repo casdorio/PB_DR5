@@ -23,8 +23,15 @@ const Client = db.define('clients', {
     freezeTableName: true
 });
 
-export default Client;
-
 (async () => {
-    await db.sync();
+    try {
+        // Sincroniza o modelo com o banco de dados
+        await db.sync();
+        console.log('Client table created successfully.');
+    } catch (error) {
+        // Se ocorrer um erro, imprime a mensagem de erro
+        console.error('Error creating client table:', error);
+    }
 })();
+
+export default Client;

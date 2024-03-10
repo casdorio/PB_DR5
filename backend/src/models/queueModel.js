@@ -26,8 +26,15 @@ const Queue = db.define('queues',{
     freezeTableName:true
 });
 
-export default Queue;
-
-(async()=>{
-    await db.sync();
+(async () => {
+    try {
+        // Sincroniza o modelo com o banco de dados
+        await db.sync();
+        console.log('Client table created successfully.');
+    } catch (error) {
+        // Se ocorrer um erro, imprime a mensagem de erro
+        console.error('Error creating client table:', error);
+    }
 })();
+
+export default Queue;

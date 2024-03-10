@@ -1,0 +1,14 @@
+{
+    "name": "queueease",
+    "version": "1.0.0",
+    "description": "Projeto de gestão de filas",
+    "scripts": {
+        "init": "node init-script.js",
+        "install-backend": "cd backend && npm install",
+        "install-frontend": "cd frontend && npm install",
+        "start-backend": "cd backend && npm start",
+        "start-frontend": "cd frontend && npm run dev",
+        "install-all": "npm run install-backend && npm run install-frontend",
+        "start-all": "start cmd /c npm run start-backend && start cmd /c npm run start-frontend"
+    }
+}

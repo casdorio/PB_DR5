@@ -41,6 +41,7 @@ build/Release
 # Dependency directories
 */node_modules/
 jspm_packages/
+*/database/Database.js
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
@@ -48,7 +49,6 @@ web_modules/
 # TypeScript cache
 *.tsbuildinfo
 
-backend/database/Database.js
 # Optional npm cache directory
 .npm
 
