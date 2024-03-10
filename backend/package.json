@@ -1,0 +1,22 @@
+{
+  "name": "gestor-de-filas-backend",
+  "version": "1.0.0",
+  "description": "Backend para o sistema de Gestor de Filas",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.3",
+    "mysql2": "^3.9.2",
+    "sequelize": "^6.37.1",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
+  }
+}
