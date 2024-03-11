@@ -1,47 +1,94 @@
 import Queue from "../models/queueModel.js";
 import Client from "../models/clientModel.js";
 
-//ajustar alguns erros
 export const createClient = async (req, res) => {
     try {
-        const queueId = req.body.queueId; 
+        const { queueId, session } = req.body;
+
         const queue = await Queue.findByPk(queueId);
 
         if (!queue || !queue.isActive) {
             return res.status(400).json({ error: "A fila não está ativa ou não existe" });
         }
 
-        const newClient = await Client.create(req.body);
+        const existingClient = await Client.findOne({ where: { session } });
+
+        if (existingClient) {
+            return res.status(201).json({
+                id_client: existingClient.id,
+                msg: "Cliente já está na fila"
+            });
+        }
+
+        const lastClient = await Client.findOne({
+            where: { queueId: queueId },
+            order: [['serviceNumber', 'DESC']]
+        });
+
+        const nextServiceNumber = lastClient ? lastClient.serviceNumber + 1 : 1;
+
+        const newClient = await Client.create({
+            queueId,
+            session,
+            serviceNumber: nextServiceNumber,
+        });
+
         res.status(201).json({
             id_client: newClient.id,
-            msg: "Cliente criado com sucesso"
+            msg: "Cliente criado com sucesso",
+            serviceNumber: nextServiceNumber 
         });
+
     } catch (error) {
-        console.log(error.message);
+        console.log('Erro ao criar cliente:', error.message);
         res.status(500).json({ error: "Erro ao criar cliente" });
     }
-}
+};
+
+
 
 
 export const checkPositionInQueue = async (req, res) => {
-    const clientId = req.params.clientId;
+    const { clientId, queueId } = req.params;
 
     try {
-        const client = await Client.findByPk(clientId);
-        const clientCreatedAt = client.createdAt;
-
-        const clientsAhead = await Client.findAll({
+        const client = await Client.findOne({
             where: {
-                createdAt: { $lt: clientCreatedAt } 
-            }
+                id: clientId,
+                queueId: queueId,
+            },
+            attributes: ['id', 'status', 'createdAt'],
         });
 
-        
-        const positionInQueue = clientsAhead.length + 1; 
+        if (!client) {
+            return res.status(404).json({ error: "Client not found in the specified queue" });
+        }
 
-        res.status(200).json({ positionInQueue });
+        if (client.status === 'waiting') {
+            const clientsAhead = await Client.count({
+                where: {
+                    queueId: queueId,
+                    status: 'waiting',
+                    createdAt: { $lt: client.createdAt }
+                }
+            });
+
+            return res.status(200).json({
+                status: client.status,
+                positionInQueue: clientsAhead + 1 
+            });
+        }
+
+        return res.status(200).json({
+            status: client.status,
+            message: client.status === 'in_service' ? "Em atendimento" : 
+                     client.status === 'served' ? "Já atendido" : 
+                     client.status === 'cancelled' ? "Cancelado" : "Status desconhecido"
+        });
     } catch (error) {
         console.log(error.message);
         res.status(500).json({ error: "Failed to check position in queue" });
     }
 };
+
+

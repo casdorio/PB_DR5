@@ -15,7 +15,7 @@ const router = createRouter({
       component: () => import('../views/QRCodeView.vue')
     },
     {
-      path: '/admin/:id/:hash',
+      path: '/admin/:queueId/:hash_admin',
       name: 'admin',
       component: () => import('../views/AdminView.vue')
     },
@@ -23,6 +23,11 @@ const router = createRouter({
       path: '/panel/:id',
       name: 'panel',
       component: () => import('../views/PanelView.vue')
+    },
+    {
+      path: '/acesso/:id',
+      name: 'acesso',
+      component: () => import('../views/AcessoView.vue')
     }
   ]
 })

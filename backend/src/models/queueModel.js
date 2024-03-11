@@ -28,11 +28,9 @@ const Queue = db.define('queues',{
 
 (async () => {
     try {
-        // Sincroniza o modelo com o banco de dados
         await db.sync();
         console.log('Client table created successfully.');
     } catch (error) {
-        // Se ocorrer um erro, imprime a mensagem de erro
         console.error('Error creating client table:', error);
     }
 })();

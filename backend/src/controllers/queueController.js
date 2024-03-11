@@ -1,18 +1,36 @@
 import Queue from "../models/queueModel.js";
+import Client from "../models/clientModel.js";
 
 export const getQueue = async (req, res) => {
-    console.log('getQueue');
     try {
-      const queueId = req.params.queueId; // Obtém o ID da fila dos parâmetros da rota
-      const queue = await Queue.findByPk(queueId); // Procura a fila pelo ID
-      
-      if (queue) {
-        res.status(200).json({ queue, isActive: true }); // Se a fila existir, ela está ativa
-      } else {
-        res.status(404).json({ message: 'Fila não encontrada.' }); // Se a fila não existir, retorna um erro 404
+        console.log('Obtendo a fila')
+      const { queueId, session } = req.params;
+  
+      let user = null;
+      if (session) {
+        user = await Client.findOne({ where: { session } });
       }
+  
+      const queue = await Queue.findByPk(queueId, {
+        attributes: ['name', 'isActive'] 
+        });
+  
+      if (!queue) {
+        return res.status(404).json({ message: 'Fila não encontrada.' });
+      }
+  
+      const response = {
+        queue,
+        isActive: queue.isActive
+      };
+  
+      if (user) {
+        response.id_client = user.id;
+      }
+  
+      res.status(200).json(response);
     } catch (error) {
-      console.log(error.message);
+      console.error('Erro ao obter a fila:', error.message);
       res.status(500).json({ message: 'Erro ao obter a fila.' });
     }
   };
@@ -30,56 +48,165 @@ export const createQueue = async(req, res) =>{
     }
 }
 
-export const updateQueue = async(req, res) =>{
-    try {
-        await Queue.update(req.body,{
-            where:{
-                id: req.params.id
-            }
-        });
-        res.status(200).json({msg: "Queue Updated"});
-    } catch (error) {
-        console.log(error.message);
-    }
-}
 
-export const deleteQueue = async(req, res) =>{
-    try {
-        await Queue.destroy({
-            where:{
-                id: req.params.id
-            }
-        });
-        res.status(200).json({msg: "Queue Deleted"});
-    } catch (error) {
-        console.log(error.message);
-    }
-}
 
-// preciso chamar o proximo da fila
-export const nextQueue = async(req, res) =>{
-    try {
-        const response = await Queue.findOne({
-            where:{
-                id: req.params.id
-            }
-        });
-        res.status(200).json(response);
-    } catch (error) {
-        console.log(error.message);
-    }
-}
+export const getQueuePanel = async (req, res) => {
+    const { queueId } = req.params; 
 
-//preciso retroceder na fila
-export const previousQueue = async(req, res) =>{
     try {
-        const response = await Queue.findOne({
-            where:{
-                id: req.params.id
-            }
+
+        const queue = await Queue.findByPk(queueId, {
+            attributes: ['name'] 
         });
-        res.status(200).json(response);
+
+        if (!queue) {
+            return res.status(404).json({ error: "Fila não encontrada" });
+        }
+        const lastServed = await Client.findOne({
+            where: {
+                queueId: queueId,
+                status: ['in_service', 'served', 'cancelled']
+            },
+            order: [
+                ['serviceNumber', 'DESC'] 
+            ],
+            attributes: ['serviceNumber'],
+        });
+
+        let nextToBeCalled = 1; 
+        if (lastServed) {
+            nextToBeCalled = lastServed.serviceNumber; 
+        }
+
+        res.json({
+            queueId: queueId,
+            nextToBeCalled, 
+            queueName: queue.name
+
+        });
     } catch (error) {
-        console.log(error.message);
+        console.error('Erro ao buscar o painel da fila:', error);
+        res.status(500).json({ message: 'Erro ao buscar informações do painel da fila.' });
     }
-}
+};
+
+export const getQueuePanelAdmin = async (req, res) => {
+    const { queueId, hash_admin } = req.params; 
+
+    try {
+        
+
+        const queue = await Queue.findByPk(queueId);
+        if (!queue) {
+            return res.status(404).json({ message: "Fila não encontrada." });
+        }
+
+        const waitingCount = await Client.count({ where: { queueId: queueId, status: 'waiting' } });
+        const inServiceCount = await Client.count({ where: { queueId: queueId, status: 'in_service' } });
+        const servedCount = await Client.count({ where: { queueId: queueId, status: 'served' } });
+        const cancelledCount = await Client.count({ where: { queueId: queueId, status: 'cancelled' } });
+
+        const nextToBeCalled = await Client.findOne({
+            where: {
+                queueId: queueId,
+                status: ['in_service', 'served', 'cancelled']
+            },
+            order: [['serviceNumber', 'DESC']],
+            attributes: ['serviceNumber'],
+        });
+
+        res.json({
+            queueId: queueId,
+            queueName: queue.name, 
+            waiting: waitingCount,
+            inService: inServiceCount,
+            served: servedCount,
+            cancelled: cancelledCount,
+            nextToBeCalled: nextToBeCalled ? nextToBeCalled.serviceNumber : 0 
+        });
+
+    } catch (error) {
+        console.error('Erro ao buscar o painel de administração da fila:', error);
+        res.status(500).json({ message: "Erro ao buscar informações do painel da fila." });
+    }
+};
+
+
+
+export const next = async (req, res) => {
+    const { queueId } = req.params;
+
+    try {
+        const currentUser = await Client.findOne({
+            where: { queueId: queueId, status: 'in_service' },
+        });
+
+        if (currentUser) {
+            currentUser.status = 'served';
+            await currentUser.save();
+        }
+
+        const nextUser = await Client.findOne({
+            where: { queueId: queueId, status: 'waiting' },
+            order: [['serviceNumber', 'ASC']],
+        });
+
+        if (nextUser) {
+            nextUser.status = 'in_service';
+            await nextUser.save();
+
+            return res.json({ message: "Próximo usuário agora está em atendimento.", nextUserId: nextUser.id });
+        } else {
+            return res.status(404).json({ message: "Nenhum usuário em espera." });
+        }
+
+    } catch (error) {
+        console.error('Erro ao avançar para o próximo usuário:', error);
+        res.status(500).json({ message: "Erro ao avançar para o próximo usuário na fila." });
+    }
+};
+
+export const returnToQueue = async (req, res) => {
+    const { queueId } = req.params;
+
+    try {
+        const inServiceUser = await Client.findOne({
+            where: { queueId: queueId, status: 'in_service' },
+        });
+
+        if (inServiceUser) {
+            inServiceUser.status = 'waiting';
+            await inServiceUser.save();
+
+            return res.json({ message: "Usuário retornado para espera.", userId: inServiceUser.id });
+        } else {
+            return res.status(404).json({ message: "Nenhum usuário atualmente em atendimento." });
+        }
+
+    } catch (error) {
+        console.error('Erro ao retornar usuário para a fila:', error);
+        res.status(500).json({ message: "Erro ao retornar o usuário para espera na fila." });
+    }
+};
+
+export const cancelQueue = async (req, res) => {
+    const { queueId } = req.params;
+
+    try {
+        const queue = await Queue.findByPk(queueId);
+
+        if (queue) {
+            queue.isActive = 0;
+            await queue.save();
+
+            return res.json({ message: "Fila cancelada com sucesso." });
+        } else {
+            return res.status(404).json({ message: "Fila não encontrada." });
+        }
+
+    } catch (error) {
+        console.error('Erro ao cancelar a fila:', error);
+        res.status(500).json({ message: "Erro ao cancelar a fila." });
+    }
+};
+

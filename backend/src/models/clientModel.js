@@ -18,18 +18,31 @@ const Client = db.define('clients', {
             model: Queue, 
             key: 'id' 
         }
+    },
+    session: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true
+    },
+    status: {
+        type: DataTypes.ENUM('waiting', 'in_service', 'served', 'canceled'), 
+        allowNull: false,
+        defaultValue: 'waiting'
+    },
+    serviceNumber: {
+        type: DataTypes.INTEGER,
+        allowNull: true
     }
+    
 }, {
     freezeTableName: true
 });
 
 (async () => {
     try {
-        // Sincroniza o modelo com o banco de dados
         await db.sync();
         console.log('Client table created successfully.');
     } catch (error) {
-        // Se ocorrer um erro, imprime a mensagem de erro
         console.error('Error creating client table:', error);
     }
 })();

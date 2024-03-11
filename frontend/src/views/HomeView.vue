@@ -38,7 +38,6 @@
     </div>
   </div>
 
-  <!-- Modal de loading -->
   <div class="modal" v-if="loading" style="background-color: rgba(0, 0, 0, 0.5)">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -99,10 +98,8 @@ export default {
 
         this.listCreated = true;
 
-        alert('Lista criada com sucesso!');
       } catch (error) {
         console.error('Erro ao criar lista:', error);
-        alert('Erro ao criar lista. Por favor, tente novamente mais tarde.');
         this.loading = false;
       }
     }
