@@ -84,7 +84,7 @@ export default {
       try {
         this.loading = true;
 
-        const response = await axios.post(`${API_BASE_URL}/queues`, {
+        const response = await axios.post(`${API_BASE_URL}/api/queues`, {
           name: this.name
         });
 

@@ -1,10 +1,7 @@
-import express from "express";
-
 import { getQueue, createQueue, getQueuePanel, 
     getQueuePanelAdmin, next, returnToQueue, cancelQueue  } from "../controllers/queueController.js";
 import { createClient, checkPositionInQueue } from "../controllers/clientController.js";
-
-const router = express.Router();
+const queueRoutes = (router) => {
 
 router.get('/queue/:queueId', getQueue);
 router.get('/queue/:queueId/:session', getQueue);
@@ -20,5 +17,5 @@ router.post('/queues', createQueue);
 router.post('/queue/join', createClient);
 
 router.get('/client/position/:queueId/:clientId', checkPositionInQueue);
-
-export default router;
+};
+export default queueRoutes;

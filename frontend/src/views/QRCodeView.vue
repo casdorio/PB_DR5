@@ -31,7 +31,7 @@ export default {
   async created() {
     this.id = this.$route.params.id;
     try {
-      const response = await axios.get(`${API_BASE_URL}/queue/${this.id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/queue/${this.id}`);
       if (response.data.isActive) {
         this.qrcodeValue = `${window.location.origin}/acesso/${this.id}`;
       } else {

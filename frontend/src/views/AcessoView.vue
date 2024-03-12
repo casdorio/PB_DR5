@@ -58,7 +58,7 @@ export default {
   methods: {
     async checkQueuePosition() {
       try {
-        const response = await axios.get(`${API_BASE_URL}/client/position/${this.queueId}/${this.idClient}`);
+        const response = await axios.get(`${API_BASE_URL}/api/client/position/${this.queueId}/${this.idClient}`);
         this.clientPosition = response.data.positionInQueue;
       } catch (error) {
         console.error('Erro ao verificar a posição na fila:', error);
@@ -89,7 +89,7 @@ export default {
     },
     async getQueueNameAndStatus() {
       try {
-        const response = await axios.get(`${API_BASE_URL}/queue/${this.queueId}/${this.session}`);
+        const response = await axios.get(`${API_BASE_URL}/api/queue/${this.queueId}/${this.session}`);
         this.queueName = response.data.queue.name;
         this.queueIsActive = response.data.isActive;
         this.idClient = response.data.id_client?? null;
@@ -100,7 +100,7 @@ export default {
       }
     },
     enterQueue() {
-      axios.post(`${API_BASE_URL}/queue/join`, {
+      axios.post(`${API_BASE_URL}/api/queue/join`, {
         queueId: this.queueId,
         session: this.session,
       })
