@@ -3,57 +3,58 @@
     <div v-if="loading" class="loading">Carregando...</div>
     <div v-else>
       <h1>{{ queueName }}</h1>
-      <h2 class="number">{{ currentUserNumber }}</h2> 
+      <h2 class="number">{{ currentUserNumber }}</h2>
     </div>
   </div>
 </template>
 
 <script>
-import axios from 'axios';
-import io from 'socket.io-client';
-import { API_BASE_URL } from '../globals';
-
+import axios from 'axios'
+import io from 'socket.io-client'
+import { API_BASE_URL } from '../globals'
 
 export default {
   data() {
     return {
-      queueName: '', 
+      queueName: '',
       currentUserNumber: 0,
-      loading: true, 
+      loading: true,
       queueId: ''
-    };
+    }
   },
   mounted() {
-    this.queueId = this.$route.params.id;
-    this.fetchQueueData();
-    this.setupWebSocket();
+    this.queueId = this.$route.params.id
+    this.fetchQueueData()
+    this.setupWebSocket()
   },
   methods: {
     fetchQueueData() {
-      this.loading = true; 
+      this.loading = true
 
-      axios.get(`${API_BASE_URL}/api/panel/${this.queueId}`).then(response => {
-        this.queueName = response.data.queueName; 
-        this.currentUserNumber = response.data.nextToBeCalled; 
-        this.loading = false; 
-      }).catch(error => {
-        console.error('Erro ao buscar os dados da fila:', error);
-        this.loading = false; 
-      });
+      axios
+        .get(`${API_BASE_URL}/api/panel/${this.queueId}`)
+        .then((response) => {
+          this.queueName = response.data.queueName
+          this.currentUserNumber = response.data.nextToBeCalled
+          this.loading = false
+        })
+        .catch((error) => {
+          console.error('Erro ao buscar os dados da fila:', error)
+          this.loading = false
+        })
     },
     setupWebSocket() {
-      this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] });
+      this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] })
 
-      console.log('Conectado ao WebSocket', this.socket);
+      console.log('Conectado ao WebSocket', this.socket)
       this.socket.on('connect', () => {
-        console.log('Conectado ao WebSocket');
-        this.socket.emit('subscribe', { queueId: this.queueId });
-      });
+        console.log('Conectado ao WebSocket')
+        this.socket.emit('subscribe', { queueId: this.queueId })
+      })
 
       this.socket.on(`update-queue-${this.queueId}`, (data) => {
-        console.log('Dados atualizados:', data);
-
-      });
+        console.log('Dados atualizados:', data)
+      })
     }
   }
 }
