@@ -10,7 +10,7 @@
 
 <script>
 import axios from 'axios';
-// import io from 'socket.io-client';
+import io from 'socket.io-client';
 import { API_BASE_URL } from '../globals';
 
 
@@ -24,27 +24,38 @@ export default {
     };
   },
   mounted() {
-    this.fetchQueueData();
-
     this.queueId = this.$route.params.id;
-    // const socket = io(`${API_BASE_URL_WS}`);
-
-    // socket.on(`update-${queueId}`, () => {
-    //   this.fetchQueueData();
-    // });
+    this.fetchQueueData();
+    this.setupWebSocket();
   },
   methods: {
     fetchQueueData() {
       this.loading = true; 
-      const queueId = this.$route.params.id;
 
-      axios.get(`${API_BASE_URL}/panel/${queueId}`).then(response => {
+      axios.get(`${API_BASE_URL}/api/panel/${this.queueId}`).then(response => {
         this.queueName = response.data.queueName; 
         this.currentUserNumber = response.data.nextToBeCalled; 
         this.loading = false; 
       }).catch(error => {
         console.error('Erro ao buscar os dados da fila:', error);
         this.loading = false; 
+      });
+    },
+    setupWebSocket() {
+      this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] });
+
+      console.log('Conectado ao WebSocket', this.socket);
+      this.socket.on('connect', () => {
+        console.log('Conectado ao WebSocket');
+        // Inscrever-se na sala específica
+        this.socket.emit('subscribe', { queueId: this.queueId });
+      });
+
+      this.socket.on(`update-queue-${this.queueId}`, (data) => {
+        console.log('Dados atualizados:', data);
+        // Atualizar a interface do usuário com os novos dados recebidos
+        // Exemplo: atualizar o número do próximo usuário a ser chamado
+        this.currentUserNumber = data.nextToBeCalled;
       });
     }
   }

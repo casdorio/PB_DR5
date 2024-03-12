@@ -35,7 +35,8 @@ export default {
       inService: 0,
       queueId: '',
       hash_admin:'',
-      nextToBeCalled: 0
+      nextToBeCalled: 0,
+      socket: null,
     };
   },
   mounted() {
@@ -45,10 +46,15 @@ export default {
     this.setupWebSocket();
     
   },
+  beforeUnmount() {
+    if (this.socket) {
+      this.socket.disconnect(); // Desconecte o socket ao destruir o componente
+    }
+  },
   methods: {
     initAdminPage() {
 
-      axios.get(`${API_BASE_URL}/admin/${this.queueId}/${this.hash_admin}`)
+      axios.get(`${API_BASE_URL}/api/admin/${this.queueId}/${this.hash_admin}`)
         .then(response => {
           this.updateQueueData(response.data);
           this.loading = false;
@@ -66,28 +72,42 @@ export default {
       this.nextToBeCalled = data.nextToBeCalled;
     },
     setupWebSocket() {
-      const socket = io('http://localhost:5173'); 
-      
-      socket.on(`update-queue-${this.queueId}`, (data) => {
-        this.updateQueueData(data);
+      this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] });
+      this.socket.on('connect', () => {
+        console.log('Conectado ao WebSocket');
+        this.socket.emit('subscribe', { queueId: this.queueId });
+
+      });
+
+      // Configurar manipuladores de eventos para o socket aqui
+      this.socket.on(`update-queue-${this.queueId}`, (data) => {
+       // this.updateQueueData(data);
+       console.log('Dados atualizados:', data);
       });
 
     },
+
+
     callNext() {
-      const queueId = this.$route.params.queueId;
-      axios.get(`${API_BASE_URL}/next/${queueId}`)
-        .then(response => {
-          console.log('Próximo chamado:', response.data);
-          this.fetchQueueInfo()
-        })
-        .catch(error => {
-          console.error('Erro ao chamar o próximo:', error);
-        });
+     // this.setupWebSocket()
+     if (this.socket) {
+      console.log('Emitindo evento call-next amdin');
+        this.socket.emit('call-next', { queueId: this.queueId });
+      }
+      // const queueId = this.$route.params.queueId;
+      // axios.get(`${API_BASE_URL}/next/${queueId}`)
+      //   .then(response => {
+      //     console.log('Próximo chamado:', response.data);
+      //     this.fetchQueueInfo()
+      //   })
+      //   .catch(error => {
+      //     console.error('Erro ao chamar o próximo:', error);
+      //   });
     },
 
     returnLast() {
       const queueId = this.$route.params.queueId;
-      axios.get(`${API_BASE_URL}/return/${queueId}`)
+      axios.get(`${API_BASE_URL}/api/return/${queueId}`)
         .then(response => {
           console.log('Último retorno:', response.data);
         })
@@ -98,7 +118,7 @@ export default {
 
     cancelQueue() {
       const queueId = this.$route.params.queueId;
-      axios.get(`${API_BASE_URL}/cancel/${queueId}`)
+      axios.get(`${API_BASE_URL}/api/cancel/${queueId}`)
         .then(response => {
           console.log('Fila cancelada:', response.data);
         })
