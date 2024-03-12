@@ -79,7 +79,6 @@ export default {
 
       });
 
-      // Configurar manipuladores de eventos para o socket aqui
       this.socket.on(`update-queue-${this.queueId}`, (data) => {
        // this.updateQueueData(data);
        console.log('Dados atualizados:', data);

@@ -47,15 +47,12 @@ export default {
       console.log('Conectado ao WebSocket', this.socket);
       this.socket.on('connect', () => {
         console.log('Conectado ao WebSocket');
-        // Inscrever-se na sala específica
         this.socket.emit('subscribe', { queueId: this.queueId });
       });
 
       this.socket.on(`update-queue-${this.queueId}`, (data) => {
         console.log('Dados atualizados:', data);
-        // Atualizar a interface do usuário com os novos dados recebidos
-        // Exemplo: atualizar o número do próximo usuário a ser chamado
-        this.currentUserNumber = data.nextToBeCalled;
+
       });
     }
   }
