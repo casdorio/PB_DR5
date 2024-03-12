@@ -52,43 +52,58 @@ export const checkPositionInQueue = async (req, res) => {
     const { clientId, queueId } = req.params;
 
     try {
-        const client = await Client.findOne({
-            where: {
-                id: clientId,
-                queueId: queueId,
-            },
-            attributes: ['id', 'status', 'createdAt'],
-        });
+        const client = await findClientByIdAndQueueId(clientId, queueId);
 
         if (!client) {
             return res.status(404).json({ error: "Client not found in the specified queue" });
         }
 
-        if (client.status === 'waiting') {
-            const clientsAhead = await Client.count({
-                where: {
-                    queueId: queueId,
-                    status: 'waiting',
-                    createdAt: { $lt: client.createdAt }
-                }
-            });
-
-            return res.status(200).json({
-                status: client.status,
-                positionInQueue: clientsAhead + 1 
-            });
+        if (client.status !== 'waiting') {
+            return res.json(formatNonWaitingResponse(client));
         }
 
-        return res.status(200).json({
-            status: client.status,
-            message: client.status === 'in_service' ? "Em atendimento" : 
-                     client.status === 'served' ? "Já atendido" : 
-                     client.status === 'cancelled' ? "Cancelado" : "Status desconhecido"
-        });
+        const positionInQueue = await calculatePositionInQueue(clientId, queueId);
+        const formattedPosition = String(positionInQueue).padStart(3, '0'); 
+        return res.json({ status: 'waiting', positionInQueue: formattedPosition, serviceNumber: String(client.serviceNumber).padStart(3, '0')});
+        
     } catch (error) {
-        console.log(error.message);
-        res.status(500).json({ error: "Failed to check position in queue" });
+        console.error(error.message);
+        return res.status(500).json({ error: "Failed to check position in queue" });
     }
 };
+
+async function findClientByIdAndQueueId(clientId, queueId) {
+    return await Client.findOne({
+        where: { id: clientId, queueId },
+        attributes: ['id', 'status', 'serviceNumber', 'createdAt'],
+    });
+}
+
+function formatNonWaitingResponse(client) {
+    const statusMessages = {
+        'in_service': "Em atendimento",
+        'served': "Já atendido",
+        'cancelled': "Cancelado"
+    };
+
+    const defaultMessage = "Status desconhecido";
+    return {
+        status: client.status,
+        positionInQueue: '000',
+        message: statusMessages[client.status] || defaultMessage
+    };
+}
+
+async function calculatePositionInQueue(clientId, queueId) {
+    const clientsWaiting = await Client.findAll({
+        where: { queueId, status: 'waiting' },
+        order: [['createdAt', 'ASC']],
+        attributes: ['id'],
+    });
+
+    return clientsWaiting.findIndex(client => client.id === clientId) + 1;
+}
+
+
 
 

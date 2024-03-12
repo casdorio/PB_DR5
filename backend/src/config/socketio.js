@@ -1,10 +1,11 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { getQueueInfo, callNextInQueue } from '../services/queueService.js';
+import { API_BASE_URL_VALID } from '../globals.js';
 
 export default function setupSocketIO(httpServer) {
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: "http://localhost:5173",
+      origin: API_BASE_URL_VALID,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -16,9 +17,8 @@ export default function setupSocketIO(httpServer) {
     socket.on('subscribe', async  (data) => {
         const roomName = `queue-${data.queueId}`;
         socket.join(roomName);
-        const queueInfo = await getQueueInfo(data.queueId);
+        io.to(roomName).emit(`update-queue-${data.queueId}`, { success: true, message: "novo cadastro" });
 
-        console.log(`Cliente inscrito na sala ${queueInfo}`);
     });
   
     socket.on('call-next', async  (data) => {

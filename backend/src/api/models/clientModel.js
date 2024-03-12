@@ -1,6 +1,6 @@
 import { Sequelize, DataTypes } from "sequelize";
 import { v4 as uuidv4 } from 'uuid';
-import db from "../../../database/Database.js";
+import db from "../../../database/database.js";
 import Queue from "./queueModel.js"; 
 
 const Client = db.define('clients', {

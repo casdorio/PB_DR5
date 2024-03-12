@@ -41,6 +41,7 @@ export const createQueue = async(req, res) =>{
         res.status(201).json({
             id_queue: newQueue.id,
             hash_admin: newQueue.hash_admin,
+            queueName: newQueue.name,
             msg: "Queue Created"
         });
     } catch (error) {
@@ -75,12 +76,12 @@ export const getQueuePanel = async (req, res) => {
 
         let nextToBeCalled = 1; 
         if (lastServed) {
-            nextToBeCalled = lastServed.serviceNumber; 
+            nextToBeCalled = String(lastServed.serviceNumber).padStart(3, '0'); 
         }
 
         res.json({
             queueId: queueId,
-            nextToBeCalled, 
+            nextToBeCalled: String(nextToBeCalled).padStart(3, '0'), 
             queueName: queue.name
 
         });
@@ -122,7 +123,7 @@ export const getQueuePanelAdmin = async (req, res) => {
             inService: inServiceCount,
             served: servedCount,
             cancelled: cancelledCount,
-            nextToBeCalled: nextToBeCalled ? nextToBeCalled.serviceNumber : 0 
+            nextToBeCalled: nextToBeCalled ? String(nextToBeCalled.serviceNumber).padStart(3, '0') : '000',
         });
 
     } catch (error) {

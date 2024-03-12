@@ -10,14 +10,33 @@ const getQueueInfo = async (queueId) => {
 };
 
 const callNextInQueue = async (queueId) => {
-  // Lógica para atualizar o próximo na fila, etc.
-  const next = await Client.findOne({
-    where: {
-      queueId,
-      status: 'waiting',
-    },
-  });
-  return next;
+  try {
+    const currentUser = await Client.findOne({
+        where: { queueId: queueId, status: 'in_service' },
+    });
+
+    if (currentUser) {
+        currentUser.status = 'served';
+        await currentUser.save();
+    }
+
+    const nextUser = await Client.findOne({
+        where: { queueId: queueId, status: 'waiting' },
+        order: [['serviceNumber', 'ASC']],
+    });
+
+    if (nextUser) {
+        nextUser.status = 'in_service';
+        await nextUser.save();
+
+        return res.json({ message: "Próximo usuário agora está em atendimento.", nextUserId: nextUser.id });
+    } else {
+        return res.status(404).json({ message: "Nenhum usuário em espera." });
+    }
+
+} catch (error) {
+    console.error('Erro ao avançar para o próximo usuário:', error);
+}
 };
 
 export { getQueueInfo, callNextInQueue };

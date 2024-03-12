@@ -20,8 +20,8 @@ const router = createRouter({
       component: () => import('../views/AdminView.vue')
     },
     {
-      path: '/panel/:id',
-      name: 'panel',
+      path: '/painel/:id',
+      name: 'painel',
       component: () => import('../views/PanelView.vue')
     },
     {
