@@ -100,6 +100,7 @@ export default {
 
       } catch (error) {
         console.error('Erro ao criar lista:', error);
+        alert('Erro ao criar lista. Tente novamente mais tarde. verifique se o servidor está rodando.');
         this.loading = false;
       }
     }
