@@ -49,11 +49,15 @@ export default {
       console.log('Conectado ao WebSocket', this.socket)
       this.socket.on('connect', () => {
         console.log('Conectado ao WebSocket')
-        this.socket.emit('subscribe', { queueId: this.queueId })
+        this.socket.emit('subscribe', { queueId: this.queueId, clientId: null})
       })
 
       this.socket.on(`update-queue-${this.queueId}`, (data) => {
-        console.log('Dados atualizados:', data)
+        const { clientId } = data.data;
+
+        if(!clientId){
+          this.fetchQueueData()
+        }
       })
     }
   }

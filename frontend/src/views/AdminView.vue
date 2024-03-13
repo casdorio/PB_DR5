@@ -27,11 +27,13 @@
           {{ nextToBeCalled }}
         </div>
         <div class="actions d-flex flex-column align-items-center">
-          <button class="btn btn-primary my-2 custom-primary" @click="callNext">
+          <button class="btn btn-primary my-2 custom-primary" :disabled="!isQueueActive" @click="callNext">
             Chamar próximo
           </button>
-          <button class="btn btn-secondary my-2">Retornar</button>
-          <button class="btn btn-danger my-2">Cancelar fila</button>
+          <button class="btn btn-secondary my-2" :disabled="!isQueueActive">Retornar</button>
+          <button class="btn" :class="isQueueActive ? 'btn-danger' : 'btn-success'" @click="toggleQueue">
+            {{ isQueueActive ? 'Desativar fila' : 'Ativar fila' }}
+          </button>
         </div>
       </div>
     </div>
@@ -55,7 +57,8 @@ export default {
       hash_admin: '',
       nextToBeCalled: 0,
       socket: null,
-      queueName: ''
+      queueName: '',
+      isQueueActive: null
     }
   },
   mounted() {
@@ -88,36 +91,31 @@ export default {
       this.cancelled = data.cancelled
       this.inService = data.inService
       this.nextToBeCalled = data.nextToBeCalled
-      this.queueName = data.queueName
+      this.queueName = data.queueName,
+      this.isQueueActive = data.isQueueActive
     },
     setupWebSocket() {
       this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] })
       this.socket.on('connect', () => {
         console.log('Conectado ao WebSocket')
-        this.socket.emit('subscribe', { queueId: this.queueId })
+        this.socket.emit('subscribe', { queueId: this.queueId, clientId: null })
       })
 
-      this.socket.on(`update-queue-${this.queueId}`, (data) => {
+      // this.socket.on(`update-queue-${this.queueId}`, (data) => {
+      //   this.initAdminPage()
+      //   console.log('Dados atualizados:', data)
+      // })
+
+      this.socket.on(`new-client-in-queue-${this.queueId}`, (data) => {
         this.initAdminPage()
         console.log('Dados atualizados:', data)
       })
     },
 
     callNext() {
-      // this.setupWebSocket()
       if (this.socket) {
-        console.log('Emitindo evento call-next amdin')
         this.socket.emit('call-next', { queueId: this.queueId })
       }
-      // const queueId = this.$route.params.queueId;
-      // axios.get(`${API_BASE_URL}/next/${queueId}`)
-      //   .then(response => {
-      //     console.log('Próximo chamado:', response.data);
-      //     this.fetchQueueInfo()
-      //   })
-      //   .catch(error => {
-      //     console.error('Erro ao chamar o próximo:', error);
-      //   });
     },
 
     returnLast() {
@@ -132,17 +130,12 @@ export default {
         })
     },
 
-    cancelQueue() {
-      const queueId = this.$route.params.queueId
-      axios
-        .get(`${API_BASE_URL}/api/cancel/${queueId}`)
-        .then((response) => {
-          console.log('Fila cancelada:', response.data)
-        })
-        .catch((error) => {
-          console.error('Erro ao cancelar a fila:', error)
-        })
-    }
+    toggleQueue() {
+      if (this.socket) {
+        this.socket.emit('toggle-queue', { queueId: this.queueId, status: !this.isQueueActive })
+        this.isQueueActive = !this.isQueueActive;
+      }
+    },
   }
 }
 </script>

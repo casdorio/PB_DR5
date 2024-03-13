@@ -3,7 +3,6 @@ import Client from "../models/clientModel.js";
 
 export const getQueue = async (req, res) => {
     try {
-        console.log('Obtendo a fila')
       const { queueId, session } = req.params;
   
       let user = null;
@@ -33,7 +32,7 @@ export const getQueue = async (req, res) => {
       console.error('Erro ao obter a fila:', error.message);
       res.status(500).json({ message: 'Erro ao obter a fila.' });
     }
-  };
+};
 
 export const createQueue = async(req, res) =>{
     try {
@@ -47,9 +46,7 @@ export const createQueue = async(req, res) =>{
     } catch (error) {
         console.log(error.message);
     }
-}
-
-
+};
 
 export const getQueuePanel = async (req, res) => {
     const { queueId } = req.params; 
@@ -66,7 +63,7 @@ export const getQueuePanel = async (req, res) => {
         const lastServed = await Client.findOne({
             where: {
                 queueId: queueId,
-                status: ['in_service', 'served', 'cancelled']
+                status: ['in_service', 'served', 'canceled']
             },
             order: [
                 ['serviceNumber', 'DESC'] 
@@ -74,7 +71,7 @@ export const getQueuePanel = async (req, res) => {
             attributes: ['serviceNumber'],
         });
 
-        let nextToBeCalled = 1; 
+        let nextToBeCalled = 0; 
         if (lastServed) {
             nextToBeCalled = String(lastServed.serviceNumber).padStart(3, '0'); 
         }
@@ -105,12 +102,12 @@ export const getQueuePanelAdmin = async (req, res) => {
         const waitingCount = await Client.count({ where: { queueId: queueId, status: 'waiting' } });
         const inServiceCount = await Client.count({ where: { queueId: queueId, status: 'in_service' } });
         const servedCount = await Client.count({ where: { queueId: queueId, status: 'served' } });
-        const cancelledCount = await Client.count({ where: { queueId: queueId, status: 'cancelled' } });
+        const cancelledCount = await Client.count({ where: { queueId: queueId, status: 'canceled' } });
 
         const nextToBeCalled = await Client.findOne({
             where: {
                 queueId: queueId,
-                status: ['in_service', 'served', 'cancelled']
+                status: ['in_service']
             },
             order: [['serviceNumber', 'DESC']],
             attributes: ['serviceNumber'],
@@ -123,6 +120,7 @@ export const getQueuePanelAdmin = async (req, res) => {
             inService: inServiceCount,
             served: servedCount,
             cancelled: cancelledCount,
+            isQueueActive: queue.isActive,
             nextToBeCalled: nextToBeCalled ? String(nextToBeCalled.serviceNumber).padStart(3, '0') : '000',
         });
 
@@ -131,8 +129,6 @@ export const getQueuePanelAdmin = async (req, res) => {
         res.status(500).json({ message: "Erro ao buscar informações do painel da fila." });
     }
 };
-
-
 
 export const next = async (req, res) => {
     const { queueId } = req.params;
@@ -190,24 +186,5 @@ export const returnToQueue = async (req, res) => {
     }
 };
 
-export const cancelQueue = async (req, res) => {
-    const { queueId } = req.params;
 
-    try {
-        const queue = await Queue.findByPk(queueId);
-
-        if (queue) {
-            queue.isActive = 0;
-            await queue.save();
-
-            return res.json({ message: "Fila cancelada com sucesso." });
-        } else {
-            return res.status(404).json({ message: "Fila não encontrada." });
-        }
-
-    } catch (error) {
-        console.error('Erro ao cancelar a fila:', error);
-        res.status(500).json({ message: "Erro ao cancelar a fila." });
-    }
-};
 

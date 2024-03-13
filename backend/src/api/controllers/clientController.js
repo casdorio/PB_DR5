@@ -53,18 +53,22 @@ export const checkPositionInQueue = async (req, res) => {
 
     try {
         const client = await findClientByIdAndQueueId(clientId, queueId);
-
+        const queueIsActive_ = await queueIsActive(queueId);
         if (!client) {
             return res.status(404).json({ error: "Client not found in the specified queue" });
         }
-
+        
         if (client.status !== 'waiting') {
-            return res.json(formatNonWaitingResponse(client));
+            return res.json(formatNonWaitingResponse(client, queueIsActive_));
         }
-
+       
         const positionInQueue = await calculatePositionInQueue(clientId, queueId);
-        const formattedPosition = String(positionInQueue).padStart(3, '0'); 
-        return res.json({ status: 'waiting', positionInQueue: formattedPosition, serviceNumber: String(client.serviceNumber).padStart(3, '0')});
+        return res.json({ 
+            status: 'waiting', 
+            positionInQueue: positionInQueue, 
+            serviceNumber: String(client.serviceNumber).padStart(3, '0'),
+            queueIsActive: queueIsActive_,
+        });
         
     } catch (error) {
         console.error(error.message);
@@ -78,18 +82,25 @@ async function findClientByIdAndQueueId(clientId, queueId) {
         attributes: ['id', 'status', 'serviceNumber', 'createdAt'],
     });
 }
+async function queueIsActive(queueId) {
+    const queue = await Queue.findByPk(queueId, {
+        attributes: ['isActive'],
+    });
 
-function formatNonWaitingResponse(client) {
+    return queue ? (queue.isActive ? 1 : 0) : 0;
+}
+function formatNonWaitingResponse(client, queueIsActive_) {
     const statusMessages = {
         'in_service': "Em atendimento",
         'served': "Já atendido",
-        'cancelled': "Cancelado"
+        'canceled': "Cancelado"
     };
 
     const defaultMessage = "Status desconhecido";
     return {
         status: client.status,
-        positionInQueue: '000',
+        positionInQueue: 0,
+        queueIsActive: queueIsActive_,
         message: statusMessages[client.status] || defaultMessage
     };
 }
@@ -103,6 +114,18 @@ async function calculatePositionInQueue(clientId, queueId) {
 
     return clientsWaiting.findIndex(client => client.id === clientId) + 1;
 }
+
+export const deleteClient = async (req, res) => {
+    const { clientId } = req.params;
+    const client = await Client.findByPk(clientId);
+    if (!client) {
+        return res.status(404).json({ message: 'Client not found' });
+    }
+    client.status = 'canceled';
+    await client.save();
+    res.status(200).json({ message: 'Client status updated' });
+
+};
 
 
 

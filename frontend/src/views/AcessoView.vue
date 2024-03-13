@@ -2,12 +2,15 @@
   <div class="access-page">
     <div v-if="loading" class="loading">Carregando...</div>
     <div v-else class="welcome-container">
-      <h1 class="queue-name">Bem-vindo à fila {{ queueName }}</h1>
-      <div v-if="clientPosition !== null">
+      <h1 class="queue-name">Bem-vindo - {{ queueName }}</h1>
+      <div v-if="clientPosition !== null && queueIsActive">
         <div class="client-position-container">
           <div class="circle-container">
             <div class="circle">
-              <div class="client-position">{{ clientPosition }}</div>
+              <div class="client-position">
+                <p>{{ serviceNumber }}</p>
+                <p>{{ positionText }}</p>
+              </div>
             </div>
             <div class="circle-outer"></div>
             <div class="gradient-border"></div>
@@ -15,12 +18,15 @@
           </div>
         </div>
         <h1>{{ message }}</h1>
+        <button v-if="clientPosition > 0" class="btn btn-danger my-2" @click="deleteClient">Sair da fila</button>
+        <!--Criar button para entrar novamente na fila caso clientPosition === 0 --> 
+        <button v-if="clientPosition === 0" class="btn btn-success my-2" @click="enterQueueAgain">Entrar novamente</button>
       </div>
 
       <div v-else>
-        <p>Por favor, clique no botão abaixo para entrar na fila.</p>
+        <p v-if="queueIsActive">Por favor, clique no botão abaixo para entrar na fila.</p>
         <button v-if="queueIsActive" @click="enterQueue">Entrar na Fila</button>
-        <p class="queue-inactive-message" v-else>
+        <p v-if="!queueIsActive" class="queue-inactive-message">
           A fila está inativa. Por favor, tente novamente mais tarde ou converse com um atendente do
           estabelecimento.
         </p>
@@ -45,12 +51,15 @@ export default {
       loading: true,
       session: '',
       idClient: null,
+      message: null,
       clientPosition: null,
-      message: null
+      positionText: null,
+      serviceNumber: null,
     }
   },
   mounted() {
     this.queueId = this.$route.params.id
+    this.setupWebSocket();
     this.captureSession().then(() => {
       if (this.session) {
         this.getQueueNameAndStatus()
@@ -59,35 +68,69 @@ export default {
       }
     })
   },
+
   watch: {
     idClient(newValue) {
       if (newValue !== null) {
         this.checkQueuePosition()
-        this.setupWebSocket()
       }
     }
   },
   methods: {
-    async checkQueuePosition() {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/client/position/${this.queueId}/${this.idClient}`
-        )
-        this.clientPosition = response.data.positionInQueue
-        this.message = response.data.message
-
-        if (response.data.status === 'in_service') {
-          this.playAudio()
-          this.vibrateDevice()
-        }
-      } catch (error) {
-        console.error('Erro ao verificar a posição na fila:', error)
-      }
+    resetData() {
+      this.idClient = null;
+      this.clientPosition = null;
+      this.message = null;
+      this.serviceNumber = null;
     },
+    resetLocalStorage() {
+      localStorage.removeItem(`queueSession-${this.queueId}`)
+    },
+    async checkQueuePosition() {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/api/client/position/${this.queueId}/${this.idClient}`);
+            
+            this.handleQueuePositionResponse(response.data);
+            this.handleClientStatus(response.data.status);
+        } catch (error) {
+            console.error('Erro ao verificar a posição na fila:', error);
+        }
+    },
+    handleQueuePositionResponse(data) {
+        this.serviceNumber = data.serviceNumber;
+        this.clientPosition = data.positionInQueue;
+        this.message = data.message;
+        this.queueIsActive = data.queueIsActive;
 
+        if (data.status === 'served') {
+            this.positionText = "Obrigado, volte sempre!";
+        } else {
+            this.positionText = this.getPositionText();
+        }
+    },
+    handleClientStatus(status) {
+        if (status === 'in_service') {
+            this.playAudio();
+            this.vibrateDevice();
+        }
+    },
+    getPositionText() {
+        switch (this.clientPosition) {
+            case 0:
+                return "Sua vez de ser atendido!";
+            case 1:
+                return "Você está em 1º lugar, é o próximo a ser atendido!";
+            case 2:
+                return "Você está em 2º lugar, aguarde ser chamado!";
+            case 3:
+                return "Você está em 3º lugar, aguarde um pouco mais!";
+            default:
+                return this.clientPosition ? `Você está em ${this.clientPosition}º lugar` : "";
+        }
+    },
     async captureSession() {
       try {
-        const storedSession = localStorage.getItem('queueSession')
+        const storedSession = localStorage.getItem(`queueSession-${this.queueId}`)
 
         if (storedSession) {
           const sessionData = JSON.parse(storedSession)
@@ -125,7 +168,7 @@ export default {
           session: this.session
         })
         .then((response) => {
-          console.log('Sucesso ao entrar na fila:', response.data)
+          this.startWebSocket();
           this.idClient = response.data.id_client
         })
         .catch((error) => {
@@ -136,20 +179,9 @@ export default {
       const newSession = uuidv4()
       this.session = newSession
       const sessionData = { queueId: this.queueId, session: newSession }
-      localStorage.setItem('queueSession', JSON.stringify(sessionData))
+      localStorage.setItem(`queueSession-${this.queueId}`, JSON.stringify(sessionData))
     },
-    setupWebSocket() {
-      this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] })
-      this.socket.on('connect', () => {
-        console.log('Conectado ao WebSocket')
-        this.socket.emit('subscribe', { queueId: this.queueId })
-      })
 
-      this.socket.on(`update-queue-${this.queueId}`, (data) => {
-        this.checkQueuePosition()
-        console.log('Dados atualizados:', data)
-      })
-    },
     playAudio() {
       const audio = new Audio(alertSound)
       audio.play().catch((e) => console.error('Erro ao reproduzir o áudio:', e))
@@ -160,7 +192,52 @@ export default {
       } else {
         console.log('Vibração não suportada neste dispositivo.')
       }
-    }
+    },
+    deleteClient() {
+      axios
+        .delete(`${API_BASE_URL}/api/client/${this.idClient}`)
+        .then(() => {
+          this.resetData()
+          this.resetLocalStorage();
+          this.deleteClientEmit();
+          this.generateSession();
+        })
+        .catch((error) => {
+          console.error('Erro ao tentar sair da fila:', error)
+        })
+    },
+    deleteClientEmit(){
+      this.socket.emit('cancel-client', { queueId: this.queueId, clientId: this.idClient})
+    },
+    setupWebSocket() {
+      this.socket = io(`${API_BASE_URL}`, { transports: ['websocket', 'polling'] })
+      this.socket.on('connect', () => {
+        console.log('Conectado ao WebSocket')
+      })
+    },
+    startWebSocket() {
+      if (this.socket) {
+        this.socket.emit('subscribe', { queueId: this.queueId, clientId: this.idClient})
+        this.socket.on(`update-queue-${this.queueId}`, (data) => {
+          const { clientId } = data.data;
+          if(!clientId){
+            this.checkQueuePosition()
+          }
+        })
+      }
+    },
+    stopWebSocket() {
+      if (this.socket) {
+        this.socket.off(`update-queue-${this.queueId}`);
+      }
+    },
+    enterQueueAgain() {
+          this.resetData();
+          this.resetLocalStorage();
+          this.startWebSocket();
+          this.generateSession();
+          this.enterQueue();
+    },
   }
 }
 </script>
@@ -214,7 +291,7 @@ export default {
 }
 
 .client-position {
-  font-size: 8rem; /* Tamanho do número */
+  font-size: 2rem; /* Tamanho do número */
 }
 
 .circle-outer,
@@ -278,7 +355,7 @@ button:hover {
   }
 
   .client-position {
-    font-size: 5rem;
+    font-size: 1rem;
   }
 
   .circle-outer,

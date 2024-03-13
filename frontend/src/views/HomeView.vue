@@ -44,15 +44,15 @@
         <div class="p-2 p-lg-5 bg-light border rounded-3">
           <h5 class="mb-2">{{ queueName }}</h5>
           <p>
-            <strong>Acesso Admin:</strong>
+            <strong>Acesso Admin: </strong>
             <a :href="adminAccessUrl" target="_blank">{{ adminAccessUrl }}</a>
           </p>
           <p>
-            <strong>Acesso painel:</strong>
+            <strong>Acesso painel: </strong>
             <a :href="painelAccessUrl" target="_blank">{{ painelAccessUrl }}</a>
           </p>
           <p>
-            <strong>Acesso qrcode:</strong>
+            <strong>Acesso qrcode: </strong>
             <a :href="qrcodeAccessUrl" target="_blank">{{ qrcodeAccessUrl }}</a>
           </p>
         </div>
