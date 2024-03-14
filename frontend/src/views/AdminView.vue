@@ -4,10 +4,7 @@
       <div v-if="loading" class="loading">Carregando...</div>
       <div v-else>
         <div class="text-center mb-5 fs-1">{{ queueName }}</div>
-
-        <!-- Container flexível para alinhar imagem e texto -->
         <div class="d-flex flex-row align-items-center w-100 mb-3">
-          <!-- Imagem do lado esquerdo -->
           <div class="flex-shrink-0">
             <img
               alt="Vue logo"
@@ -15,7 +12,6 @@
               src="@/assets/QueueEase.svg"
             />
           </div>
-          <!-- Texto do lado direito -->
           <div class="flex-grow-1 ms-3 text-end">
             <div>Pessoas na fila: {{ peopleInQueue }}</div>
             <div>Em atendimento: {{ inService }}</div>
@@ -69,7 +65,7 @@ export default {
   },
   beforeUnmount() {
     if (this.socket) {
-      this.socket.disconnect() // Desconecte o socket ao destruir o componente
+      this.socket.disconnect() 
     }
   },
   methods: {
@@ -101,23 +97,22 @@ export default {
         this.socket.emit('subscribe', { queueId: this.queueId, clientId: null })
       })
 
-      // this.socket.on(`update-queue-${this.queueId}`, (data) => {
-      //   this.initAdminPage()
-      //   console.log('Dados atualizados:', data)
-      // })
-
       this.socket.on(`new-client-in-queue-${this.queueId}`, (data) => {
         this.initAdminPage()
         console.log('Dados atualizados:', data)
       })
     },
-
     callNext() {
       if (this.socket) {
         this.socket.emit('call-next', { queueId: this.queueId })
       }
     },
-
+    toggleQueue() {
+      if (this.socket) {
+        this.socket.emit('toggle-queue', { queueId: this.queueId, status: !this.isQueueActive })
+        this.isQueueActive = !this.isQueueActive;
+      }
+    },
     returnLast() {
       const queueId = this.$route.params.queueId
       axios
@@ -129,13 +124,6 @@ export default {
           console.error('Erro ao retornar o último:', error)
         })
     },
-
-    toggleQueue() {
-      if (this.socket) {
-        this.socket.emit('toggle-queue', { queueId: this.queueId, status: !this.isQueueActive })
-        this.isQueueActive = !this.isQueueActive;
-      }
-    },
   }
 }
 </script>
@@ -143,16 +131,13 @@ export default {
 <style scoped>
 .panel {
   font-size: 8rem;
-  /* Ajuste conforme necessário */
   font-weight: bold;
   text-align: center;
 }
 
 .custom-primary {
   background-color: #aa3684;
-  /* Exemplo de cor roxa */
   border-color: #aa3684;
-  /* Cor mais escura para a borda */
 }
 .custom-primary:hover {
   background-color: #aa368350;
@@ -160,23 +145,18 @@ export default {
   border: 1px solid #aa3684;
 }
 
-/* Para garantir que os botões estejam um abaixo do outro com espaçamento */
 .actions button {
   width: 100%;
   margin-top: 10px;
-  /* Espaçamento entre os botões */
 }
 
 .logo-mobile {
   max-width: 100px;
-  /* Tamanho padrão para telas maiores */
 }
 
-/* Media query para telas menores (dispositivos móveis) */
 @media (max-width: 768px) {
   .logo-mobile {
     max-width: 80px;
-    /* Diminui o tamanho da logo para dispositivos móveis */
   }
 }
 </style>

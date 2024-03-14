@@ -2,11 +2,15 @@
   <div class="painel">
     <div v-if="loading" class="loading">Carregando...</div>
     <div v-else>
-      <h1>{{ queueName }}</h1>
-      <h2 class="number">{{ currentUserNumber }}</h2>
+      <div class="wrapper">
+        <div class="title">{{ queueName }}</div>
+        <div class="number">{{ currentUserNumber }}</div>
+      </div>
     </div>
   </div>
 </template>
+
+
 
 <script>
 import axios from 'axios'
@@ -49,13 +53,13 @@ export default {
       console.log('Conectado ao WebSocket', this.socket)
       this.socket.on('connect', () => {
         console.log('Conectado ao WebSocket')
-        this.socket.emit('subscribe', { queueId: this.queueId, clientId: null})
+        this.socket.emit('subscribe', { queueId: this.queueId, clientId: null })
       })
 
       this.socket.on(`update-queue-${this.queueId}`, (data) => {
         const { clientId } = data.data;
 
-        if(!clientId){
+        if (!clientId) {
           this.fetchQueueData()
         }
       })
@@ -74,12 +78,40 @@ export default {
   min-height: 100vh;
 }
 
+.title {
+  font-size: 5rem;
+  margin: 20px 0;
+}
+
 .number {
-  font-size: 5em;
+  font-size: 20rem;
   margin: 20px 0;
 }
 
 .loading {
   font-size: 2em;
+}
+
+.wrapper {
+  border-radius: 49px;
+  border: 5px solid #aa3684; 
+  padding: 20px; 
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+  width: 900px;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 5rem;
+    margin: 20px 0;
+  }
+
+  .number {
+    font-size: 10rem;
+    margin: 20px 0;
+  }
+  .wrapper {
+    width: 100%;
+  }
 }
 </style>
